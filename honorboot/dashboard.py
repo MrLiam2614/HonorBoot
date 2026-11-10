@@ -34,7 +34,7 @@ def open_dashboard(args, store):
     tk.Label(root, text='status | pause | resume | reboot | fastboot | checkbattery | help', bg='#10151b', fg='#69c8ff').pack(pady=8)
     entry = tk.Entry(root, bg='#1c2632', fg='white', insertbackground='white', font=('Consolas', 13)); entry.pack(fill='x', padx=16, pady=8)
     busy = False
-    log_offset = 0
+    log_offset = None
     def append(text):
         follow = logs.yview()[1] >= 0.99
         logs.configure(state='normal')
@@ -71,8 +71,11 @@ def open_dashboard(args, store):
                         f"Log age: {time.time()-s.get('updated_at',0):.0f}s | Data: {store.path}")
             path = store.path / 'events.log'
             if path.exists():
-                with path.open(encoding='utf-8') as f:
-                    f.seek(log_offset); text = f.read(); log_offset = f.tell()
+                with path.open('rb') as f:
+                    size = path.stat().st_size
+                    if log_offset is None: log_offset = max(0, size - 16384)
+                    if log_offset > size: log_offset = 0
+                    f.seek(log_offset); text = f.read(16384).decode('utf-8', errors='replace'); log_offset = f.tell()
                 if text: append(text.rstrip())
         except (OSError, ValueError, KeyError, TypeError) as exc:
             notice.set('CHECKPOINT UNAVAILABLE — ' + str(exc))
@@ -111,6 +114,11 @@ def open_dashboard(args, store):
                         p.stdin.write(CONSENT+'\n'); p.stdin.close()
                     finally: out.close()
                     message='Runner launched. Check STATUS for actual progress; a launch is not proof of successful connection.'
+                elif command == 'status':
+                    message = store.file.read_text(encoding='utf-8')
+                elif command == 'pause':
+                    (store.path / 'STOP').write_text('User requested pause', encoding='utf-8')
+                    message = 'Pause requested. Waiting for the current bounded command to finish.'
                 else:
                     result=subprocess.run(prefix+[command],capture_output=True,text=True,timeout=400,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
                     message=result.stdout+result.stderr

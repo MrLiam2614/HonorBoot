@@ -198,8 +198,21 @@ Apache-2.0. See `LICENSE` and `NOTICE`.
 ```powershell
 py -3 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-build.txt
-.venv\Scripts\python -m PyInstaller --clean --noconfirm --onefile --name HonorBoot launcher.py
+.venv\Scripts\python -m PyInstaller --clean --noconfirm --onedir --name HonorBoot launcher.py
 ```
 
-The result is `dist/HonorBoot.exe`. Build dependencies are separate from runtime
+The result is `dist/HonorBoot/HonorBoot.exe`. Keep the entire HonorBoot folder together. Build dependencies are separate from runtime
 dependencies. Never distribute your private data directory with the application.
+
+## Automatic setup and responsiveness
+
+Setup detects platform-tools in saved settings, PATH, Android SDK locations and
+nearby folders. Device discovery runs in the background with bounded timeouts.
+Saved per-device IMEI sequences are reused; if multiple seeds exist, select one
+explicitly. In Android, a legacy IMEI read is attempted when no saved seed exists.
+Fastboot detection never reboots the phone just to read an identifier.
+
+The portable distribution uses an application folder instead of extracting a
+single-file executable on every launch. Keep `_internal` with the executable.
+The dashboard reads at most 16 KiB of new logs per refresh and initially shows
+only the recent tail. Status and pause no longer launch an extra process.

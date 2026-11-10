@@ -19,3 +19,4 @@ fastboot.exe
 *.spec
 *.zip
 SHA256SUMS.txt
+portable/

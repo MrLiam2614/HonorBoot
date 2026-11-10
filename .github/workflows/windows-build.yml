@@ -16,7 +16,7 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r requirements-build.txt
       - run: python -m unittest discover -s tests -v
-      - run: python -m PyInstaller --clean --noconfirm --onefile --name HonorBoot launcher.py
+      - run: python -m PyInstaller --clean --noconfirm --onedir --name HonorBoot launcher.py
       - name: Package portable application
         shell: pwsh
         run: |

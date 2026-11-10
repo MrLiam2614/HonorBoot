@@ -1,9 +1,11 @@
 """Local first-run configuration. Opening a dashboard never starts attempts."""
 import json
+import queue
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
 from .core import Store, default_data_dir, validate_imei
 
@@ -11,7 +13,7 @@ from .core import Store, default_data_dir, validate_imei
 def setup():
     root = tk.Tk()
     root.title('HonorBoot - Open controller')
-    root.geometry('640x340')
+    root.geometry('760x440')
     root.resizable(False, False)
     root.configure(bg='#10151b')
     config = default_data_dir() / 'launcher.json'
@@ -24,16 +26,51 @@ def setup():
     tk.Label(frame, text='HONORBOOT / LOCAL CONTROLLER', bg='#10151b', fg='#63e6be', font=('Consolas', 18, 'bold')).grid(row=0, column=0, columnspan=3, sticky='w')
     tk.Label(frame, text='Configure your device. No attempts start from this screen.', bg='#10151b', fg='#69c8ff', font=('Consolas', 10)).grid(row=1, column=0, columnspan=3, pady=(8, 16))
     fields = {}
+    results = queue.Queue()
+    detecting = False
     for row, (key, label) in enumerate([('tools', 'Platform-tools folder'), ('serial', 'Device serial'), ('imei', 'IMEI sequence seed')], 2):
         tk.Label(frame, text=label, bg='#10151b', fg='#d7e0e9', font=('Consolas', 10)).grid(row=row, column=0, sticky='w', pady=8)
         value = tk.StringVar(value=saved.get(key, ''))
         fields[key] = value
-        tk.Entry(frame, textvariable=value, width=32, bg='#1c2632', fg='#63e6be', insertbackground='#63e6be', relief='flat', font=('Consolas', 11)).grid(row=row, column=1, padx=8)
+        ttk.Combobox(frame, textvariable=value, width=38).grid(row=row, column=1, padx=8) if key == 'imei' else tk.Entry(frame, textvariable=value, width=38, bg='#1c2632', fg='#63e6be', insertbackground='#63e6be', relief='flat', font=('Consolas', 11)).grid(row=row, column=1, padx=8)
     def browse():
         path = filedialog.askdirectory(parent=root, title='Select official Android platform-tools folder')
         if path:
             fields['tools'].set(path)
     tk.Button(frame, text='Browse', command=browse, bg='#1c2632', fg='#69c8ff', relief='flat', padx=10, pady=5).grid(row=2, column=2)
+    info = tk.StringVar(value='Detecting tools and connected device...')
+    tk.Label(frame, textvariable=info, bg='#10151b', fg='#ffd166', wraplength=690,
+             justify='left', font=('Consolas', 10)).grid(row=6, column=0, columnspan=3, sticky='w')
+    def detect():
+        nonlocal detecting
+        if detecting: return
+        detecting = True
+        snapshot = {key: value.get().strip() for key, value in fields.items()}
+        info.set('Detecting in background... You can still edit the fields.')
+        def work():
+            from .discovery import detect_configuration
+            try: results.put((snapshot, detect_configuration(snapshot, default_data_dir()), None))
+            except Exception as exc: results.put((snapshot, None, str(exc)))
+        threading.Thread(target=work, daemon=True).start()
+    def receive():
+        nonlocal detecting
+        try:
+            snapshot, found, error = results.get_nowait()
+            detecting = False
+            if error: info.set(error)
+            else:
+                for key in fields:
+                    if fields[key].get().strip() == snapshot[key] and key in found:
+                        fields[key].set(found[key])
+                for widget in frame.grid_slaves(row=4, column=1):
+                    widget.configure(values=found.get('imeis', []))
+                info.set(found['message'])
+        except queue.Empty: pass
+        root.after(100, receive)
+    tk.Button(frame, text='DETECT DEVICE', command=detect, bg='#1c2632', fg='#69c8ff',
+              relief='flat', padx=12, pady=10).grid(row=5, column=0, pady=18)
+    root.after(100, detect)
+    root.after(100, receive)
     selected = []
     def open_controller():
         try:
