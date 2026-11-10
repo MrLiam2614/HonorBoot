@@ -44,4 +44,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" HonorBoot-Windows-x64.zip SHA256SUMS.txt --verify-tag --prerelease --title "HonorBoot $TAG (experimental)" --notes "Portable Windows x64 build. Extract and open HonorBoot.exe. Python is included; official Android platform-tools and device drivers must be installed separately. Read README before starting: an accepted unlock command may erase data. Simulated tests are not a hardware compatibility guarantee."
+        run: |
+          gh release create "$TAG" HonorBoot-Windows-x64.zip SHA256SUMS.txt --verify-tag --prerelease --title "HonorBoot $TAG (experimental)" --notes "Portable Windows x64 build. Extract and open HonorBoot.exe. Python is included; official Android platform-tools and device drivers must be installed separately. Read README before starting: an accepted unlock command may erase data. Simulated tests are not a hardware compatibility guarantee."
