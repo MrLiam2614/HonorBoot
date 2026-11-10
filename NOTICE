@@ -1,0 +1,10 @@
+HonorBoot local controller
+
+The experimental candidate sequence reproduces the arithmetic described by:
+https://github.com/vcka/huawei-honor-unlock-bootloader
+Original project: SkywalkerFR / vcka, Apache License 2.0.
+This implementation is independently structured around durable state and recovery.
+No claim is made that the original formula yields a valid Huawei unlock code.
+
+Android platform-tools are not included. Obtain them from Google separately.
+Huawei, Honor, Android and other trademarks belong to their respective owners.

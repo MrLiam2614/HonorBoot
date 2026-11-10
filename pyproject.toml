@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "honorboot-local"
+version = "0.1.0"
+description = "Experimental local Huawei/Honor sequence runner with recovery and per-device checkpoints"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+dependencies = []
+
+[project.scripts]
+honorboot = "honorboot.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["honorboot*"]
