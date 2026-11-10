@@ -1,2 +1,2 @@
 """Experimental Huawei/Honor bootloader sequence runner."""
-__version__ = '0.1.3'
+__version__ = '0.1.4'

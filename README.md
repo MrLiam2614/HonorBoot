@@ -26,19 +26,20 @@ covered by simulated tests, not validated against every physical failure mode.
 
 ## Windows download (no Python installation)
 
-Download **HonorBoot-Windows-x64.zip** from this repository's **Releases** page,
-extract it, and double-click **HonorBoot.exe**. Select your official Android
-platform-tools folder and enter your device serial and chosen IMEI seed. These
-settings stay on your PC. Opening the dashboard does not start attempts.
+Download **HonorBoot.exe** from this repository's **Releases** page and double-click
+it. No Python installation, source checkout, ZIP extraction or companion app
+folder is required. Android platform-tools and USB drivers remain separate
+requirements; setup detects tools already installed on the PC.
 
-The executable includes Python and Tkinter, but not Android tools or USB drivers.
-The portable build is unsigned. Releases are marked experimental. A SHA-256
-checksum is published with each release; no code-signing certificate is claimed.
-A companion console may remain visible; use the dashboard's command field.
+The dark interface stays in one window. **Play** and **Stop** are always visible;
+manual commands live in a collapsed **Manual controls** section. Stop preserves
+progress, and Play requires explicit data-erasure consent before any attempts.
 
-GitHub Actions builds Windows x64 on pushes to `main` and manual dispatches.
-Version tags (`v*`) additionally publish a downloadable prerelease. Development
-builds are available under the workflow's **Artifacts** section.
+The executable includes Python and Tkinter and extracts its runtime automatically
+at startup. This can add startup latency compared with a folder build, but does
+not block background device detection. It is unsigned and experimental. A SHA-256
+checksum is included in each release. GitHub Actions builds on pushes to `main`;
+version tags publish a downloadable prerelease.
 
 ## Requirements
 
@@ -198,10 +199,10 @@ Apache-2.0. See `LICENSE` and `NOTICE`.
 ```powershell
 py -3 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-build.txt
-.venv\Scripts\python -m PyInstaller --clean --noconfirm --onedir --name HonorBoot launcher.py
+.venv\Scripts\python -m PyInstaller --clean --noconfirm --onefile --name HonorBoot launcher.py
 ```
 
-The result is `dist/HonorBoot/HonorBoot.exe`. Keep the entire HonorBoot folder together. Build dependencies are separate from runtime
+The result is `dist/HonorBoot.exe`. Build dependencies are separate from runtime
 dependencies. Never distribute your private data directory with the application.
 
 ## Automatic setup and responsiveness
@@ -212,7 +213,6 @@ Saved per-device IMEI sequences are reused; if multiple seeds exist, select one
 explicitly. In Android, a legacy IMEI read is attempted when no saved seed exists.
 Fastboot detection never reboots the phone just to read an identifier.
 
-The portable distribution uses an application folder instead of extracting a
-single-file executable on every launch. Keep `_internal` with the executable.
+The public download is a single executable with automatic runtime extraction.
 The dashboard reads at most 16 KiB of new logs per refresh and initially shows
 only the recent tail. Status and pause no longer launch an extra process.

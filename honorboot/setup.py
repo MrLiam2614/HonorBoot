@@ -43,7 +43,7 @@ def setup():
              justify='left', font=('Consolas', 10)).grid(row=6, column=0, columnspan=3, sticky='w')
     def detect():
         nonlocal detecting
-        if detecting: return
+        if detecting or transitioning: return
         detecting = True
         snapshot = {key: value.get().strip() for key, value in fields.items()}
         info.set('Detecting in background... You can still edit the fields.')
@@ -54,6 +54,7 @@ def setup():
         threading.Thread(target=work, daemon=True).start()
     def receive():
         nonlocal detecting
+        if transitioning: return
         try:
             snapshot, found, error = results.get_nowait()
             detecting = False
@@ -71,8 +72,9 @@ def setup():
               relief='flat', padx=12, pady=10).grid(row=5, column=0, pady=18)
     root.after(100, detect)
     root.after(100, receive)
-    selected = []
+    transitioning = False
     def open_controller():
+        nonlocal transitioning
         try:
             values = {key: value.get().strip() for key, value in fields.items()}
             tools = Path(values['tools']).resolve()
@@ -87,12 +89,13 @@ def setup():
             store = Store(args.data, args.serial, args.imei, reconcile=False)
             if not store.file.exists():
                 store.save()
-            selected.append((args, store))
-            root.destroy()
+            transitioning = True
+            frame.destroy()
+            root.resizable(True, True)
+            from .dashboard import open_dashboard
+            open_dashboard(args, store, root=root)
         except (OSError, ValueError) as exc:
             messagebox.showerror('Cannot open controller', str(exc), parent=root)
     tk.Button(frame, text='OPEN DASHBOARD >', command=open_controller, bg='#1c2632', fg='#63e6be', relief='flat', font=('Consolas', 12, 'bold'), padx=16, pady=10).grid(row=5, column=1, pady=18, sticky='e')
     root.mainloop()
-    if selected:
-        from .dashboard import open_dashboard
-        open_dashboard(*selected[0])
+

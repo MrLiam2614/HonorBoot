@@ -16,18 +16,17 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r requirements-build.txt
       - run: python -m unittest discover -s tests -v
-      - run: python -m PyInstaller --clean --noconfirm --onedir --name HonorBoot launcher.py
+      - run: python -m PyInstaller --clean --noconfirm --onefile --name HonorBoot launcher.py
       - name: Package portable application
         shell: pwsh
         run: |
-          Copy-Item README.md,LICENSE,NOTICE dist/
-          Compress-Archive -Path dist/* -DestinationPath HonorBoot-Windows-x64.zip
-          (Get-FileHash HonorBoot-Windows-x64.zip -Algorithm SHA256).Hash.ToLower() + '  HonorBoot-Windows-x64.zip' | Set-Content SHA256SUMS.txt
+          Copy-Item dist/HonorBoot.exe HonorBoot.exe
+          (Get-FileHash HonorBoot.exe -Algorithm SHA256).Hash.ToLower() + '  HonorBoot.exe' | Set-Content SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: HonorBoot-Windows-x64
           path: |
-            HonorBoot-Windows-x64.zip
+            HonorBoot.exe
             SHA256SUMS.txt
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -45,4 +44,4 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" HonorBoot-Windows-x64.zip SHA256SUMS.txt --verify-tag --prerelease --title "HonorBoot $TAG (experimental)" --notes "Portable Windows x64 build. Extract and open HonorBoot.exe. Python is included; official Android platform-tools and device drivers must be installed separately. Read README before starting: an accepted unlock command may erase data. Simulated tests are not a hardware compatibility guarantee."
+          gh release create "$TAG" HonorBoot.exe SHA256SUMS.txt --verify-tag --prerelease --title "HonorBoot $TAG (experimental)" --notes "Portable Windows x64 build. Download and open HonorBoot.exe. No source download or manual extraction needed. Python is included; official Android platform-tools and device drivers must be installed separately. Read README before starting: an accepted unlock command may erase data. Simulated tests are not a hardware compatibility guarantee."

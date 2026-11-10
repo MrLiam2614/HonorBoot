@@ -10,9 +10,11 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
 
 
-def open_dashboard(args, store):
+def open_dashboard(args, store, root=None):
     from .__main__ import CONSENT
-    root = tk.Tk(); root.title('HonorBoot - local controller'); root.geometry('1000x650')
+    owns_root = root is None
+    if owns_root: root = tk.Tk()
+    root.title('HonorBoot'); root.geometry('1000x720')
     root.configure(bg='#10151b')
     root.minsize(760, 520)
     tk.Label(root, text='HONORBOOT  /  LOCAL CONTROLLER', bg='#10151b', fg='#69c8ff',
@@ -24,6 +26,8 @@ def open_dashboard(args, store):
              font=('Consolas', 11)).pack(fill='x', padx=16, pady=(8, 0))
     summary = tk.StringVar(value='Loading local progress...')
     tk.Label(root, textvariable=summary, bg='#10151b', fg='#63e6be', font=('Consolas', 12), justify='left', anchor='w').pack(fill='x', padx=16, pady=12)
+    primary = tk.Frame(root, bg='#10151b')
+    primary.pack(fill='x', padx=16, pady=(0, 12))
     logs = scrolledtext.ScrolledText(root, bg='#10151b', fg='#d7e0e9', font=('Consolas', 10), state='disabled')
     logs.pack(fill='both', expand=True, padx=16)
     for name, color in [('info', '#69c8ff'), ('success', '#63e6be'), ('warning', '#ffd166'), ('error', '#ff7b86')]:
@@ -31,8 +35,8 @@ def open_dashboard(args, store):
     messages = queue.Queue()
     history = []
     history_position = 0
-    tk.Label(root, text='status | pause | resume | reboot | fastboot | checkbattery | help', bg='#10151b', fg='#69c8ff').pack(pady=8)
-    entry = tk.Entry(root, bg='#1c2632', fg='white', insertbackground='white', font=('Consolas', 13)); entry.pack(fill='x', padx=16, pady=8)
+    manual = tk.Frame(root, bg='#10151b')
+    entry = tk.Entry(manual, bg='#1c2632', fg='white', insertbackground='white', font=('Consolas', 13)); entry.pack(fill='x', padx=16, pady=8)
     busy = False
     log_offset = None
     def append(text):
@@ -97,6 +101,13 @@ def open_dashboard(args, store):
         if command == 'clear':
             logs.configure(state='normal'); logs.delete('1.0', 'end'); logs.configure(state='disabled'); return
         if command not in ('status','pause','resume','reboot','fastboot','checkbattery'): append('Unknown command'); return
+        if command == 'pause':
+            try:
+                (store.path / 'STOP').write_text('User requested pause', encoding='utf-8')
+                notice.set('STOP REQUESTED - waiting for the current command')
+                append('STOP requested. Progress will be kept; the current bounded command may finish first.')
+            except OSError as exc: append('ERROR: ' + str(exc))
+            return
         if busy: append('A controller command is still running'); return
         approved = command != 'resume' or messagebox.askyesno('Possible data erasure', 'A valid code can immediately unlock and erase all data. No guaranteed second PC confirmation. Start attempts?', parent=root)
         if not approved: return
@@ -134,12 +145,28 @@ def open_dashboard(args, store):
     entry.bind('<Up>', lambda event: navigate_history(-1))
     entry.bind('<Down>', lambda event: navigate_history(1))
     entry.bind('<Return>',submit)
-    actions = tk.Frame(root, bg='#10151b'); actions.pack(fill='x', padx=16)
+    actions = tk.Frame(manual, bg='#10151b'); actions.pack(fill='x', padx=16)
     def quick(command):
         entry.delete(0, 'end'); entry.insert(0, command); submit()
-    for label, command in [('Status', 'status'), ('Pause', 'pause'), ('Resume…', 'resume'), ('Battery', 'battery'), ('Help', 'help')]:
+    for label, command in [('Status', 'status'), ('Android reboot', 'reboot'), ('Fastboot', 'fastboot'), ('Battery', 'battery'), ('Help', 'help')]:
         tk.Button(actions, text=label, command=lambda c=command: quick(c), bg='#1c2632', fg='#d7e0e9',
                   relief='flat', padx=14, pady=6).pack(side='left', padx=(0, 6))
-    tk.Button(root,text='Execute',command=submit).pack(pady=5)
+    tk.Button(manual, text='Execute command', command=submit, bg='#1c2632', fg='#69c8ff', relief='flat').pack(pady=8)
+    tk.Button(primary, text='▶  PLAY', command=lambda: quick('resume'), bg='#63e6be', fg='#10151b',
+              activebackground='#8cf0d0', relief='flat', font=('Consolas', 18, 'bold'), padx=32, pady=14).pack(side='left', padx=(0, 12))
+    tk.Button(primary, text='■  STOP', command=lambda: quick('pause'), bg='#342129', fg='#ff7b86',
+              activebackground='#50303b', relief='flat', font=('Consolas', 18, 'bold'), padx=32, pady=14).pack(side='left')
+    tk.Label(primary, text='Stop keeps your progress.\nPlay always asks for confirmation.', bg='#10151b', fg='#8997a8',
+             font=('Consolas', 10), justify='left').pack(side='left', padx=20)
+    def toggle_manual():
+        if manual.winfo_manager():
+            manual.pack_forget(); toggle.configure(text='Manual controls ▸')
+        else:
+            manual.pack(fill='x', padx=0, pady=(0, 12)); toggle.configure(text='Manual controls ▾')
+            entry.focus_set()
+    toggle = tk.Button(root, text='Manual controls ▸', command=toggle_manual, bg='#10151b', fg='#8997a8',
+                       relief='flat', font=('Consolas', 10), anchor='w')
+    toggle.pack(fill='x', padx=16, pady=8)
     append('Local controller only. Closing this dashboard does not stop the runner. Use pause to stop attempts.')
-    refresh(); entry.focus_set(); root.mainloop()
+    refresh()
+    if owns_root: root.mainloop()
