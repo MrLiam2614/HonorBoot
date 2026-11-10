@@ -1,5 +1,6 @@
 """Native Windows-friendly dashboard with local command entry, no AI calls."""
 import json
+import os
 import queue
 import subprocess
 import sys
@@ -101,9 +102,12 @@ def open_dashboard(args, store):
             try:
                 prefix=([sys.executable] if getattr(sys, 'frozen', False) else [sys.executable,'-m','honorboot']) + ['--tools',str(args.tools),'--data',str(args.data),'--serial',args.serial,'--imei',args.imei]
                 if command == 'resume':
+                    child_env = os.environ.copy()
+                    if getattr(sys, 'frozen', False):
+                        child_env['PYINSTALLER_RESET_ENVIRONMENT'] = '1'
                     out=(store.path/'worker-output.log').open('a',encoding='utf-8')
                     try:
-                        p=subprocess.Popen(prefix+['run'], stdin=subprocess.PIPE, stdout=out, stderr=out, text=True, creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+                        p=subprocess.Popen(prefix+['run'], env=child_env, stdin=subprocess.PIPE, stdout=out, stderr=out, text=True, creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
                         p.stdin.write(CONSENT+'\n'); p.stdin.close()
                     finally: out.close()
                     message='Runner launched. Check STATUS for actual progress; a launch is not proof of successful connection.'
